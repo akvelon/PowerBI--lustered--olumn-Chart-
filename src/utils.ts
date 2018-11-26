@@ -6,42 +6,98 @@ module powerbi.extensibility.visual.visualUtils {
 
     const DisplayUnitValue: number = 1;
 
-    export function calculateBarCoordianates(data: VisualData, settings: VisualSettings, barHeight: number): void {
-        let isCategoricalAxisType: boolean = settings.categoryAxis.axisType === "categorical";
+    export function calculateBarCoordianates(data: VisualData, settings: VisualSettings, dataPointThickness: number): void {
+        const clustersCount: number = data.legendData ? data.legendData.dataPoints.length : 1;
+        
+        const categoryAxisIsContinuous: boolean = data.axes.xIsScalar && settings.categoryAxis.axisType !== "categorical";
 
-        let legendCount: number = data.legendData ? data.legendData.dataPoints.length : 1;
+        const categoryAxisStartValue: number = categoryAxisIsContinuous && settings.categoryAxis.start ? settings.categoryAxis.start : 0;
+        const categoryAxisEndValue: number = categoryAxisIsContinuous && settings.categoryAxis.end ? settings.categoryAxis.end : Number.MAX_VALUE;
+
+        const thickness: number = dataPointThickness / clustersCount;
 
         data.dataPoints.forEach(point => {
-            let height, width, x, y: number;
-
-            if (data.axes.xIsScalar && !isCategoricalAxisType) {
-                width = barHeight < 0 ? 0 : barHeight / legendCount;
-            } else {
-                width = data.axes.x.scale.rangeBand() / legendCount;
+            if (categoryAxisIsContinuous){
+                const categoryvalueIsInRange: boolean = point.category >= categoryAxisStartValue && point.category <= categoryAxisEndValue;
+                if (!categoryvalueIsInRange){
+                    setZeroCoordinatesForPoint(point);
+                    return;
+                }
             }
 
-            y = point.value >= 0 ? data.axes.y.scale(0) : data.axes.y.scale(point.value);
-
-            let heightValue: number = point.value as number;
-            if (data.axes.y.scale(heightValue) < 0) {
-                height = 1;
-            } else {
-                height = point.value >= 0 ? y - data.axes.y.scale(heightValue) : y - data.axes.y.scale(0);
+            let x: number = data.axes.x.scale(point.category);
+            if (categoryAxisIsContinuous) {
+                x -= thickness / 2;
+            }
+            if ( clustersCount > 1 ){
+                x += thickness * point.shiftValue;
             }
 
-            if (data.axes.xIsScalar && !isCategoricalAxisType) {
-                x = data.axes.x.scale(point.category) - barHeight / 2 + (legendCount > 1 ? width * point.shiftValue : 0);
-            } else {
-                x = data.axes.x.scale(point.category) + (legendCount > 1 ? width * point.shiftValue : 0);
+            const fromValue: number = 0;
+            let fromCoordinate: number = data.axes.y.scale(fromValue);
+            fromCoordinate = Math.min(fromCoordinate, data.size.height);
+            const toValue = fromValue + point.value;
+            let toCoordinate: number = data.axes.y.scale(toValue);
+            toCoordinate = Math.max(toCoordinate, 0);
+
+            if ( toCoordinate >= fromCoordinate ){
+                setZeroCoordinatesForPoint(point);
+                return;
+            }
+
+            let volume: number = fromCoordinate - toCoordinate;
+            if (volume < 1 && volume !== 0){
+                volume = 1;
             }
 
             point.barCoordinates = {
-                height: height < 1 && height !== 0 ? 1 : height,
-                width: width,
-                x: x,
-                y: y - height
+                height: volume,
+                width: thickness,
+                x,
+                y: toCoordinate
             };
         });
+
+        if (data.axes.xIsScalar && settings.categoryAxis.axisType !== "categorical") {
+            recalculateThicknessForContinuous(data, thickness);
+        }
+    }
+
+    function setZeroCoordinatesForPoint(point: VisualDataPoint): void {
+        point.barCoordinates = {height: 0, width: 0, x: 0, y: 0};
+    }
+
+    export function recalculateThicknessForContinuous(data: VisualData, dataPointThickness: number) {
+        let minWidth: number = 1.5,
+            minDistance: number = Number.MAX_VALUE;
+
+        let dataPoints: VisualDataPoint[] = data.dataPoints.sort((a, b) => {
+            return a.barCoordinates.x - b.barCoordinates.x;
+        });
+
+        let firstDataPoint: VisualDataPoint = dataPoints[0];
+
+        for (let i = 1; i < dataPoints.length; ++i) {
+            let distance: number = dataPoints[i].barCoordinates.x - firstDataPoint.barCoordinates.x;
+
+            minDistance = distance < minDistance ? distance : minDistance;
+            firstDataPoint = dataPoints[i];
+        }
+
+        if (minDistance < minWidth) {
+            
+        } else if (minWidth < minDistance && minDistance < dataPointThickness) {
+            minWidth = minDistance;
+        } else {
+            minWidth = dataPointThickness;
+        }
+
+        if (dataPointThickness && dataPointThickness !== minWidth) {
+            dataPoints.forEach(x => {
+                x.barCoordinates.width = x.barCoordinates.width ? minWidth : 0;
+                x.barCoordinates.x = x.barCoordinates.x + dataPointThickness / 2;
+            });
+        }
     }
 
     export function calculateLabelCoordinates(data: VisualData,
@@ -174,22 +230,30 @@ module powerbi.extensibility.visual.visualUtils {
     const CategoryMaxHeight: number = 130;
     const CategoryContinuousMinHeight: number = 1;
 
-    export function calculateBarHeight(
+    export function calculateDataPointThickness(
         visualDataPoints: VisualDataPoint[],
         visualSize: ISize,
         categories: string[],
         categoryInnerPadding: number,
         yScale: any,
-        axisType: string): number {
+        settings: VisualSettings): number {
 
         let currentBarHeight = visualSize.width / categories.length;
         let barHeight: number = 0;
 
-        if (axisType === "categorical") {
+        if (settings.categoryAxis.axisType === "categorical") {
             let innerPadding: number = categoryInnerPadding / 100;
             barHeight = d3.min([CategoryMaxHeight, d3.max([CategoryMinHeight, currentBarHeight])]) * (1 - innerPadding);
         } else {
             let dataPoints = [...visualDataPoints];
+
+            let start = settings.categoryAxis.start,
+                end = settings.categoryAxis.end;
+
+            if (start != null || end != null) {
+                dataPoints = dataPoints.filter(x => start != null ? x.value >= start : true 
+                                                &&  end != null ? x.value <= end : true)
+            }
 
             let dataPointsCount: number = dataPoints.length;
 
