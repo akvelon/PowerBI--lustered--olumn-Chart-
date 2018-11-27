@@ -1,10 +1,10 @@
 {
   "visual": {
     "name": "clusteredColumnChartByAkvelon",
-    "displayName": "Clustered Column Chart by Akvelon 1.1.0",
+    "displayName": "Clustered Column Chart by Akvelon 1.2.0",
     "guid": "clusteredColumnChartByAkvelonBE487DE8B8674A59A098B9B16C950BA1",
     "visualClassName": "Visual",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "Clustered Column Chart with rectangle selection support",
     "supportUrl": "http://akvelon.com/feedback",
     "gitHubUrl": ""

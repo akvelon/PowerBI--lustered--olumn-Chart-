@@ -34,6 +34,8 @@ module powerbi.extensibility.visual {
         Legend = <any>"Legend",
         Value = <any>"Value",
         Gradient = <any>"Gradient",
+        ColumnBy = <any>"ColumnBy",
+        RowBy = <any>"RowBy",
         Tooltips = <any>"Tooltips",
         GroupedValues = <any>"GroupedValues"
     }
@@ -78,6 +80,23 @@ module powerbi.extensibility.visual {
             const columns: DataViewCategoricalColumn[] = dataView.categorical.categories;
 
             if (columns && columns.filter(x => x.source && x.source.roles[Field.Axis]).length) {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static IsCategoryFilled(dataView: DataView, categoryField: Field): boolean {
+            if (dataView.categorical 
+                && dataView.categorical.values 
+                && dataView.categorical.values.source 
+                && dataView.categorical.values.source.roles[categoryField]) {
+                return true;
+            }
+
+            const columns: DataViewCategoricalColumn[] = dataView.categorical.categories;
+
+            if (columns && columns.filter(x => x.source && x.source.roles[categoryField]).length) {
                 return true;
             }
 
@@ -212,6 +231,9 @@ module powerbi.extensibility.visual {
             categoryColumn.values.forEach((categoryValue, i) => {
                 let sum: number = 0;
 
+                let columnBy: PrimitiveValue = columns[Field.ColumnBy] && columns[Field.ColumnBy][0].values[i],
+                    rowBy: PrimitiveValue = columns[Field.RowBy] && columns[Field.RowBy][0].values[i];
+
                 columns[Field.Legend].forEach((legend, k) => {
                     let value: number = columns[Field.Value][k].values[i];
                     let color = legendColors[k];
@@ -250,7 +272,9 @@ module powerbi.extensibility.visual {
                             selected: false,
                             identity: identity,
                             tooltips: tooltipItems,
-                            color: color
+                            color: color,
+                            columnBy: columnBy,
+                            rowBy: rowBy
                        });
 
                         let highlightValue: number = columns[Field.Value][k].highlights ? columns[Field.Value][k].highlights[i] : null;
@@ -269,7 +293,9 @@ module powerbi.extensibility.visual {
                                 identity: identity,
                                 highlight: true,
                                 tooltips: highlightTooltipItems,
-                                color: color
+                                color: color,
+                                columnBy: columnBy,
+                                rowBy: rowBy
                             });
                         }
                     }
@@ -295,6 +321,9 @@ module powerbi.extensibility.visual {
                 columns[Field.Value].forEach((valueColumn, k) => {
                     let value: number = valueColumn.values[i];
                     let color = legendColors[k];
+
+                    let columnBy: PrimitiveValue = columns[Field.ColumnBy] && columns[Field.ColumnBy][0].values[i],
+                        rowBy: PrimitiveValue = columns[Field.RowBy] && columns[Field.RowBy][0].values[i];
 
                     let identity: ISelectionId = hostService.createSelectionIdBuilder()
                         .withCategory(categoryColumn, i)
@@ -326,7 +355,9 @@ module powerbi.extensibility.visual {
                             selected: false,
                             identity: identity,
                             tooltips: tooltipItems,
-                            color: color
+                            color: color,
+                            columnBy: columnBy,
+                            rowBy: rowBy
                         });
 
                         let highlightValue: number = valueColumn.highlights ? valueColumn.highlights[i] : null;
@@ -344,7 +375,9 @@ module powerbi.extensibility.visual {
                                 identity: identity,
                                 highlight: true,
                                 tooltips: tooltipItems,
-                                color: color
+                                color: color,
+                                columnBy: columnBy,
+                                rowBy: rowBy
                             });
                         }
                     }
@@ -377,6 +410,9 @@ module powerbi.extensibility.visual {
                 const value: number = columns[Field.Value].values[i],
                     colorSaturationCol = columns[Field.Gradient],
                     colorSaturation: number = colorSaturationCol && colorSaturationCol.values[i] ? columns[Field.Gradient].values[i] : null;
+
+                let columnBy: PrimitiveValue = columns[Field.ColumnBy] && columns[Field.ColumnBy][0].values[i],
+                    rowBy: PrimitiveValue = columns[Field.RowBy] && columns[Field.RowBy][0].values[i];
 
                 let identity: ISelectionId = hostService.createSelectionIdBuilder()
                     .withCategory(categoryColumn, i)
@@ -412,7 +448,9 @@ module powerbi.extensibility.visual {
                         selected: false,
                         identity: identity,
                         color: color,
-                        tooltips: tooltipItems
+                        tooltips: tooltipItems,
+                        columnBy: columnBy,
+                        rowBy: rowBy
                     });
 
                     let highlightValue: number = columns[Field.Value].highlights ? columns[Field.Value].highlights[i] : null;
@@ -430,7 +468,9 @@ module powerbi.extensibility.visual {
                             identity: identity,
                             highlight: true,
                             color: color,
-                            tooltips: highlightTooltipItems
+                            tooltips: highlightTooltipItems,
+                            columnBy: columnBy,
+                            rowBy: rowBy
                         });
                     }
                 }

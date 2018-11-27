@@ -30,7 +30,7 @@ module powerbi.extensibility.visual {
             metadata: VisualMeasureMetadata,
             settings: VisualSettings,
             host: IVisualHost,
-            dataPointThickness: number,
+            dataPointThickness: number = null,
             maxXLabelsWidth = null): IAxes {
 
             let yAxisProperties: axis.IAxisProperties = null;
@@ -291,6 +291,7 @@ module powerbi.extensibility.visual {
 
             const margin: IMargin = visualMargin,
                 width: number = viewport.width,
+                height: number = viewport.height,
                 yAxisOrientation: string = "right",
                 showY1OnRight: boolean = yAxisOrientation === settings.valueAxis.position;
 
@@ -339,8 +340,9 @@ module powerbi.extensibility.visual {
 
                     textSelectionX.attr({
                         "transform": svg.translate(
-                            (width + margin.left) / RenderAxes.AxisLabelOffset,
-                            visualSize.height + xFontSize + margin.top + tickLabelHeight + this.TickLabelAndTitleGap)
+                            (width) / RenderAxes.AxisLabelOffset,
+                            (height + visualSize.height + xFontSize + margin.top) / 2),
+                        "dy": '.8em'
                     });
 
                     if (showXAxisTitle && xTitle && xTitle.toString().length > 0) {
@@ -367,7 +369,7 @@ module powerbi.extensibility.visual {
                             ? width - margin.right - yFontSize
                             : margin.left / 2,
                         "x": -((visualSize.height + margin.top + margin.bottom) / RenderAxes.AxisLabelOffset),
-                        "dy": RenderAxes.DefaultDY
+                        "dy": (showY1OnRight ? '-' : '') + RenderAxes.DefaultDY
                     });
 
                     if (showYAxisTitle && yTitle && yTitle.toString().length > 0) {
