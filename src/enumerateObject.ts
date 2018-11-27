@@ -96,6 +96,8 @@ module powerbi.extensibility.visual {
                         delete instance.properties["axisStyle"];
                         delete instance.properties["displayUnits"];
                         delete instance.properties["precision"];
+                        delete instance.properties["start"];
+                        delete instance.properties["end"];
                     }
 
                     break;
@@ -126,6 +128,18 @@ module powerbi.extensibility.visual {
                         delete instance.properties["precision"];
                     }
 
+                    break;
+                }
+                case "smallMultiple": {
+                    if (settings.smallMultiple.layoutMode === LayoutMode.Matrix) {
+                        delete instance.properties["maxRowWidth"];
+                    }
+
+                    if (!settings.smallMultiple.showChartTitle) {
+                        delete instance.properties["fontFamily"];
+                        delete instance.properties["fontSize"];
+                        delete instance.properties["fontColor"];
+                    }
                     break;
                 }
             }

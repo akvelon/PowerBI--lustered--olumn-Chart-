@@ -4,7 +4,9 @@ module powerbi.extensibility.visual.metadataUtils {
 
     const ColumnCategory: string = "Axis";
     const ColumnValue: string = "Value";
-    const ColumnGradient: string = "Gradient";
+    const ColumnGradient: string = "Gradient"; 
+    const ColumnColumnBy: string = 'ColumnBy';
+    const ColumnRowBy: string = 'RowBy';
 
     export function getMetadata(
         categories: DataViewCategoryColumn[],
@@ -37,7 +39,9 @@ module powerbi.extensibility.visual.metadataUtils {
             idx: {
                 category: categoryIndex,
                 value: valueIndex,
-                gradient: gradientIndex
+                gradient: gradientIndex,
+                columnBy: getCategoryIndexOfRole(categories, ColumnColumnBy),
+                rowBy: getCategoryIndexOfRole(categories, ColumnRowBy)
             },
             cols: {
                 value: valueCol,

@@ -59,7 +59,7 @@ module powerbi.extensibility.visual {
             let hasHighlight = this.visual.getAllDataPoints().filter(x => x.highlight).length > 0;
 
             let allDatapoints: VisualDataPoint[] = this.visual.getAllDataPoints();
-            this.options.interactivityService.applySelectionStateToData(allDatapoints);
+            //this.options.interactivityService.applySelectionStateToData(allDatapoints);
             let currentSelection = allDatapoints.filter(d => d.selected);
 
             this.options.bars.style({
@@ -87,13 +87,11 @@ module powerbi.extensibility.visual {
                     }
 
                     return Visual.DefaultStrokeWidth;
+                },
+                "stroke-opacity": p => {
+                    return hasSelection || hasHighlight ? 1 : 0
                 }
             });
-
-            if ((hasSelection || currentSelection.length === 0) && !visualUtils.compareObjects(currentSelection, this.options.selectionSaveSettings, "identity.key")) {
-                this.visual.skipScrollbarUpdate = true;
-                selectionSaveUtils.saveSelection(currentSelection, this.options.host);
-            }
         }
     }
 }

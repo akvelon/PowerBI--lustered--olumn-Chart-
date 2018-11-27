@@ -2,21 +2,39 @@ module powerbi.extensibility.visual.visualUtils {
     import IAxisProperties = powerbi.extensibility.utils.chart.axis.IAxisProperties;
     import TextMeasurementService = powerbi.extensibility.utils.formatting.textMeasurementService;
     import TextProperties = powerbi.extensibility.utils.formatting.TextProperties;
-    import IValueFormatter = powerbi.extensibility.utils.formatting.IValueFormatter;
+    import IValueFormatter = powerbi.extensibility.utils.formatting.IValueFormatter;     
+    import PixelConverter = powerbi.extensibility.utils.type.PixelConverter;
+    import axis = powerbi.extensibility.utils.chart.axis;
+    import valueType = powerbi.extensibility.utils.type.ValueType;
 
     const DisplayUnitValue: number = 1;
 
-    export function calculateBarCoordianates(data: VisualData, settings: VisualSettings, dataPointThickness: number): void {
-        const clustersCount: number = data.legendData ? data.legendData.dataPoints.length : 1;
-        
-        const categoryAxisIsContinuous: boolean = data.axes.xIsScalar && settings.categoryAxis.axisType !== "categorical";
+    export function calculateBarCoordianatesByData(data: VisualData, settings: VisualSettings, barHeight: number): void {
+        let dataPoints: VisualDataPoint[] = data.dataPoints;
+        let axes: IAxes = data.axes;
+
+        let legendDataPointsCount: number = data.legendData
+                                                    && data.legendData.dataPoints ? data.legendData.dataPoints.length : 1;
+
+        this.calculateBarCoordianates(dataPoints, legendDataPointsCount, axes, settings, barHeight);
+    }
+
+    export function calculateBarCoordianates(dataPoints: VisualDataPoint[], clustersCount: number, axes: IAxes, settings: VisualSettings, dataPointThickness: number): void {
+        const categoryAxisIsContinuous: boolean = axes.xIsScalar && settings.categoryAxis.axisType !== "categorical";
 
         const categoryAxisStartValue: number = categoryAxisIsContinuous && settings.categoryAxis.start ? settings.categoryAxis.start : 0;
         const categoryAxisEndValue: number = categoryAxisIsContinuous && settings.categoryAxis.end ? settings.categoryAxis.end : Number.MAX_VALUE;
 
         const thickness: number = dataPointThickness / clustersCount;
 
-        data.dataPoints.forEach(point => {
+        dataPoints.forEach(point => {
+            let width = 0;
+            if (axes.xIsScalar && categoryAxisIsContinuous) {
+                width = dataPointThickness < 0 ? 0 : dataPointThickness;
+            } else {
+                width = axes.x.scale.rangeBand() / clustersCount;
+            }
+
             if (categoryAxisIsContinuous){
                 const categoryvalueIsInRange: boolean = point.category >= categoryAxisStartValue && point.category <= categoryAxisEndValue;
                 if (!categoryvalueIsInRange){
@@ -25,20 +43,38 @@ module powerbi.extensibility.visual.visualUtils {
                 }
             }
 
-            let x: number = data.axes.x.scale(point.category);
+            let x: number = axes.x.scale(point.category);
             if (categoryAxisIsContinuous) {
                 x -= thickness / 2;
             }
             if ( clustersCount > 1 ){
-                x += thickness * point.shiftValue;
+                x += width * point.shiftValue;
             }
 
-            const fromValue: number = 0;
-            let fromCoordinate: number = data.axes.y.scale(fromValue);
-            fromCoordinate = Math.min(fromCoordinate, data.size.height);
-            const toValue = fromValue + point.value;
-            let toCoordinate: number = data.axes.y.scale(toValue);
-            toCoordinate = Math.max(toCoordinate, 0);
+            const minValue: number = axes.y.dataDomain[0],
+                maxValue: number = axes.y.dataDomain[1];
+
+            let fromValue: number = point.value >= 0 ? 0 : point.value;
+            
+            if (fromValue < minValue) {
+                fromValue = minValue;
+            } else if (fromValue > maxValue) {
+                setZeroCoordinatesForPoint(point);
+                return;
+            }
+
+            let fromCoordinate: number = axes.y.scale(fromValue);
+
+            let toValue = point.value >= 0 ? point.value : 0;
+
+            if (toValue < minValue) {
+                setZeroCoordinatesForPoint(point);
+                return;                
+            } else if (toValue > maxValue) {
+                toValue = maxValue;
+            }
+
+            let toCoordinate: number = axes.y.scale(toValue);
 
             if ( toCoordinate >= fromCoordinate ){
                 setZeroCoordinatesForPoint(point);
@@ -52,14 +88,14 @@ module powerbi.extensibility.visual.visualUtils {
 
             point.barCoordinates = {
                 height: volume,
-                width: thickness,
+                width: width,
                 x,
                 y: toCoordinate
             };
         });
 
-        if (data.axes.xIsScalar && settings.categoryAxis.axisType !== "categorical") {
-            recalculateThicknessForContinuous(data, thickness);
+        if (axes.xIsScalar && settings.categoryAxis.axisType !== "categorical") {
+            recalculateThicknessForContinuous(dataPoints, thickness);
         }
     }
 
@@ -67,21 +103,21 @@ module powerbi.extensibility.visual.visualUtils {
         point.barCoordinates = {height: 0, width: 0, x: 0, y: 0};
     }
 
-    export function recalculateThicknessForContinuous(data: VisualData, dataPointThickness: number) {
+    export function recalculateThicknessForContinuous(dataPoints: VisualDataPoint[], dataPointThickness: number) {
         let minWidth: number = 1.5,
             minDistance: number = Number.MAX_VALUE;
 
-        let dataPoints: VisualDataPoint[] = data.dataPoints.sort((a, b) => {
+        let sortedDataPoints: VisualDataPoint[] = dataPoints.sort((a, b) => {
             return a.barCoordinates.x - b.barCoordinates.x;
         });
 
-        let firstDataPoint: VisualDataPoint = dataPoints[0];
+        let firstDataPoint: VisualDataPoint = sortedDataPoints[0];
 
-        for (let i = 1; i < dataPoints.length; ++i) {
-            let distance: number = dataPoints[i].barCoordinates.x - firstDataPoint.barCoordinates.x;
+        for (let i = 1; i < sortedDataPoints.length; ++i) {
+            let distance: number = sortedDataPoints[i].barCoordinates.x - firstDataPoint.barCoordinates.x;
 
             minDistance = distance < minDistance ? distance : minDistance;
-            firstDataPoint = dataPoints[i];
+            firstDataPoint = sortedDataPoints[i];
         }
 
         if (minDistance < minWidth) {
@@ -93,7 +129,7 @@ module powerbi.extensibility.visual.visualUtils {
         }
 
         if (dataPointThickness && dataPointThickness !== minWidth) {
-            dataPoints.forEach(x => {
+            sortedDataPoints.forEach(x => {
                 x.barCoordinates.width = x.barCoordinates.width ? minWidth : 0;
                 x.barCoordinates.x = x.barCoordinates.x + dataPointThickness / 2;
             });
@@ -103,12 +139,14 @@ module powerbi.extensibility.visual.visualUtils {
     export function calculateLabelCoordinates(data: VisualData,
                                             settings: categoryLabelsSettings,
                                             metadata: VisualMeasureMetadata,
-                                            chartHeight: number) {
+                                            chartHeight: number,
+                                            isLegendRendered: boolean,
+                                            dataPoints: VisualDataPoint[] = null) {
         if (!settings.show) {
             return;
         }
 
-        let dataPointsArray: VisualDataPoint[] = data.dataPoints;
+        let dataPointsArray: VisualDataPoint[] = dataPoints || data.dataPoints;
 
         let dataLabelFormatter: IValueFormatter = formattingUtils.createFormatter(settings.displayUnits,
                                                                         settings.precision,
@@ -226,24 +264,24 @@ module powerbi.extensibility.visual.visualUtils {
         return DefaultOpacity;
     }
 
-    const CategoryMinHeight: number = 16;
-    const CategoryMaxHeight: number = 130;
+    const CategoryMinWidth: number = 1;
+    const CategoryMaxWidth: number = 450;
     const CategoryContinuousMinHeight: number = 1;
 
     export function calculateDataPointThickness(
         visualDataPoints: VisualDataPoint[],
         visualSize: ISize,
-        categories: string[],
+        categoriesCount: number,
         categoryInnerPadding: number,
-        yScale: any,
-        settings: VisualSettings): number {
+        settings: VisualSettings,
+        isCategorical: boolean = false): number {
 
-        let currentBarHeight = visualSize.width / categories.length;
-        let barHeight: number = 0;
+        let currentThickness = visualSize.width / categoriesCount;
+        let thickness: number = 0;
 
-        if (settings.categoryAxis.axisType === "categorical") {
-            let innerPadding: number = categoryInnerPadding / 100;
-            barHeight = d3.min([CategoryMaxHeight, d3.max([CategoryMinHeight, currentBarHeight])]) * (1 - innerPadding);
+        if (isCategorical || settings.categoryAxis.axisType === "categorical") {
+            let innerPadding: number = categoryInnerPadding / 100; 
+            thickness = d3.min([CategoryMaxWidth, d3.max([CategoryMinWidth, currentThickness])]) * (1 - innerPadding);
         } else {
             let dataPoints = [...visualDataPoints];
 
@@ -259,14 +297,14 @@ module powerbi.extensibility.visual.visualUtils {
 
             if (dataPointsCount < 4) {
                 let devider: number = 3.75;
-                barHeight = visualSize.width / devider;
+                thickness = visualSize.width / devider;
             } else {
                 let devider: number = 3.75 + 1.25 * (dataPointsCount - 3); 
-                barHeight = visualSize.width / devider;
+                thickness = visualSize.width / devider;
             }
         }
 
-        return barHeight;
+        return thickness;
     }
 
     export function getLabelsMaxWidth(group: d3.selection.Group): number {
@@ -340,5 +378,31 @@ module powerbi.extensibility.visual.visualUtils {
         }
 
         return isEqual;
+    }
+
+    export function smallMultipleLabelRotationIsNeeded(
+        xAxisSvgGroup: d3.Selection<any>,
+        barHeight: number,
+        categoryAxisSettings: categoryAxisSettings,
+        maxLabelHeight: number
+    ): boolean {
+        const rangeBand = barHeight;
+
+        let maxLabelWidth: number = 0;
+
+        xAxisSvgGroup.selectAll('text').each(function(){
+            const labelWidth: number = this.getBoundingClientRect().width;
+
+            maxLabelWidth = Math.max(maxLabelWidth, labelWidth > maxLabelHeight ? maxLabelHeight : labelWidth);
+        });
+
+        return maxLabelWidth > rangeBand;
+    }
+
+    export function isScalar(column: DataViewMetadataColumn) {
+        const categoryType: valueType = axis.getCategoryValueType(column);
+        let isOrdinal: boolean = axis.isOrdinal(categoryType);
+
+        return !isOrdinal;
     }
 }
