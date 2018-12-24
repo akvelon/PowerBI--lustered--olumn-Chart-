@@ -9,18 +9,27 @@ module powerbi.extensibility.visual.visualUtils {
 
     const DisplayUnitValue: number = 1;
 
-    export function calculateBarCoordianatesByData(data: VisualData, settings: VisualSettings, barHeight: number): void {
+    export function calculateBarCoordianatesByData(data: VisualData, settings: VisualSettings, barHeight: number, isSmallMultiple: boolean = false): void {
         let dataPoints: VisualDataPoint[] = data.dataPoints;
         let axes: IAxes = data.axes;
 
         let legendDataPointsCount: number = data.legendData
                                                     && data.legendData.dataPoints ? data.legendData.dataPoints.length : 1;
 
-        this.calculateBarCoordianates(dataPoints, legendDataPointsCount, axes, settings, barHeight);
+        this.calculateBarCoordianates(dataPoints, legendDataPointsCount, axes, settings, barHeight, isSmallMultiple);
     }
 
-    export function calculateBarCoordianates(dataPoints: VisualDataPoint[], clustersCount: number, axes: IAxes, settings: VisualSettings, dataPointThickness: number): void {
+    export function calculateBarCoordianates(dataPoints: VisualDataPoint[], 
+                                            clustersCount: number, 
+                                            axes: IAxes, 
+                                            settings: VisualSettings, 
+                                            dataPointThickness: number, 
+                                            isSmallMultiple: boolean = false): void {
+
         const categoryAxisIsContinuous: boolean = axes.xIsScalar && settings.categoryAxis.axisType !== "categorical";
+
+        const skipCategoryStartEnd: boolean = isSmallMultiple && settings.categoryAxis.rangeType !== AxisRangeType.Custom,
+            skipValueStartEnd: boolean = isSmallMultiple && settings.valueAxis.rangeType !== AxisRangeType.Custom;
 
         const categoryAxisStartValue: number = categoryAxisIsContinuous && settings.categoryAxis.start ? settings.categoryAxis.start : 0;
         const categoryAxisEndValue: number = categoryAxisIsContinuous && settings.categoryAxis.end ? settings.categoryAxis.end : Number.MAX_VALUE;
@@ -30,7 +39,11 @@ module powerbi.extensibility.visual.visualUtils {
         dataPoints.forEach(point => {
             let width = 0;
             if (axes.xIsScalar && categoryAxisIsContinuous) {
-                width = dataPointThickness < 0 ? 0 : dataPointThickness;
+                let start = skipCategoryStartEnd ? null : settings.categoryAxis.start,
+                    end = skipCategoryStartEnd ? null : settings.categoryAxis.end;
+
+                width = start != null && start > point.category || dataPointThickness < 0 ? 0 : dataPointThickness;
+                width = end != null && end <= point.category ? 0 : dataPointThickness;
             } else {
                 width = axes.x.scale.rangeBand() / clustersCount;
             }
@@ -47,6 +60,12 @@ module powerbi.extensibility.visual.visualUtils {
             if (categoryAxisIsContinuous) {
                 x -= thickness / 2;
             }
+
+            if (point.shiftValue > axes.y.dataDomain[1]) {
+                setZeroCoordinatesForPoint(point);
+                return;
+            }
+
             if ( clustersCount > 1 ){
                 x += width * point.shiftValue;
             }
@@ -95,7 +114,7 @@ module powerbi.extensibility.visual.visualUtils {
         });
 
         if (axes.xIsScalar && settings.categoryAxis.axisType !== "categorical") {
-            recalculateThicknessForContinuous(dataPoints, thickness);
+            recalculateThicknessForContinuous(dataPoints, thickness, clustersCount);
         }
     }
 
@@ -103,7 +122,7 @@ module powerbi.extensibility.visual.visualUtils {
         point.barCoordinates = {height: 0, width: 0, x: 0, y: 0};
     }
 
-    export function recalculateThicknessForContinuous(dataPoints: VisualDataPoint[], dataPointThickness: number) {
+    export function recalculateThicknessForContinuous(dataPoints: VisualDataPoint[], dataPointThickness: number, clustersCount: number) {
         let minWidth: number = 1.5,
             minDistance: number = Number.MAX_VALUE;
 
@@ -130,8 +149,15 @@ module powerbi.extensibility.visual.visualUtils {
 
         if (dataPointThickness && dataPointThickness !== minWidth) {
             sortedDataPoints.forEach(x => {
-                x.barCoordinates.width = x.barCoordinates.width ? minWidth : 0;
-                x.barCoordinates.x = x.barCoordinates.x + dataPointThickness / 2;
+                const oldWidth: number = x.barCoordinates.width;
+                x.barCoordinates.width = oldWidth ? minWidth : 0;
+                x.barCoordinates.x = x.barCoordinates.x + dataPointThickness / 2 - oldWidth * x.shiftValue;
+
+                x.barCoordinates.x -= minWidth / 2;
+                
+                if ( clustersCount > 1 ){
+                    x.barCoordinates.x += minWidth * x.shiftValue;
+                }
             });
         }
     }
@@ -274,7 +300,8 @@ module powerbi.extensibility.visual.visualUtils {
         categoriesCount: number,
         categoryInnerPadding: number,
         settings: VisualSettings,
-        isCategorical: boolean = false): number {
+        isCategorical: boolean = false,
+        isSmallMultiple: boolean = false): number {
 
         let currentThickness = visualSize.width / categoriesCount;
         let thickness: number = 0;
@@ -285,8 +312,10 @@ module powerbi.extensibility.visual.visualUtils {
         } else {
             let dataPoints = [...visualDataPoints];
 
-            let start = settings.categoryAxis.start,
-                end = settings.categoryAxis.end;
+            const skipStartEnd: boolean = isSmallMultiple && settings.categoryAxis.rangeType !== AxisRangeType.Custom;
+
+            let start = skipStartEnd ? null : settings.categoryAxis.start,
+                end = skipStartEnd ? null : settings.categoryAxis.end;
 
             if (start != null || end != null) {
                 dataPoints = dataPoints.filter(x => start != null ? x.value >= start : true 
@@ -295,7 +324,10 @@ module powerbi.extensibility.visual.visualUtils {
 
             let dataPointsCount: number = dataPoints.length;
 
-            if (dataPointsCount < 4) {
+            if (dataPointsCount < 3) {
+                let devider: number = 8;
+                thickness = visualSize.height / devider;
+            } else if (dataPointsCount < 4) {
                 let devider: number = 3.75;
                 thickness = visualSize.width / devider;
             } else {
@@ -401,6 +433,13 @@ module powerbi.extensibility.visual.visualUtils {
 
     export function isScalar(column: DataViewMetadataColumn) {
         const categoryType: valueType = axis.getCategoryValueType(column);
+        let isOrdinal: boolean = axis.isOrdinal(categoryType);
+
+        return !isOrdinal;
+    }
+
+    export function categoryIsScalar(metadata: VisualMeasureMetadata): boolean {
+        const categoryType: valueType = axis.getCategoryValueType(metadata.cols.category);
         let isOrdinal: boolean = axis.isOrdinal(categoryType);
 
         return !isOrdinal;
