@@ -209,6 +209,7 @@ module powerbi.extensibility.visual {
         }
 
         normalChartProcess(options: VisualUpdateOptions): void {
+            this.maxXLabelsWidth = null;
             this.dataPointsByCategories = this.buildDataPointsByCategoriesArray();
 
             // Highlight
@@ -275,7 +276,7 @@ module powerbi.extensibility.visual {
             axes = this.createAxes(visibleDataPoints);
             this.data.axes = axes;
 
-            this.renderAxes(this.maxYLabelsWidth);
+            this.renderAxes();
             RenderAxes.rotateXAxisTickLabels(this.isNeedToRotate, this.xAxisSvgGroup);
             this.finalRendering();
  
@@ -1156,7 +1157,7 @@ module powerbi.extensibility.visual {
             );
         }
 
-        private renderAxes(maxYLabelsWidth = null): void {
+        private renderAxes(): void {
             visualUtils.calculateBarCoordianatesByData(this.data, this.settings, this.dataPointThickness);
 
             RenderAxes.render(
@@ -1346,16 +1347,16 @@ module powerbi.extensibility.visual {
             // Set up margins for our visual
             this.calculateVisualMargin();
 
-            const showYAxisTitle: boolean = this.settings.categoryAxis.show && this.settings.categoryAxis.showTitle;
-            const xAxisTitleThickness: number = showYAxisTitle ? visualUtils.GetXAxisTitleHeight(this.settings.categoryAxis) + 5 : 0;
+            const showXAxisTitle: boolean = this.settings.categoryAxis.show && this.settings.categoryAxis.showTitle;
+            const yAxisTitleThickness: number = showXAxisTitle ? visualUtils.GetXAxisTitleHeight(this.settings.categoryAxis) + 5 : 0;
 
-            this.calculateVisualSize( legendSize, xAxisTitleThickness);
+            this.calculateVisualSize(legendSize, yAxisTitleThickness);
 
-            const yAxisMaxWidth = xAxisUtils.getXAxisMaxWidth(this.visualSize.width + this.yTickOffset, this.settings);
-            if (this.yTickOffset > yAxisMaxWidth + xAxisTitleThickness) {
-                this.yTickOffset = yAxisMaxWidth + xAxisTitleThickness;
+            const xAxisMaxWidth = xAxisUtils.getXAxisMaxWidth(this.visualSize.height + this.xTickOffset, this.settings);
+            if (this.xTickOffset > xAxisMaxWidth + yAxisTitleThickness) {
+                this.xTickOffset = xAxisMaxWidth + yAxisTitleThickness;
 
-                this.maxYLabelsWidth = yAxisMaxWidth;
+                this.maxXLabelsWidth = xAxisMaxWidth;
             }
 
             this.calculateVisualPosition();
@@ -1386,12 +1387,14 @@ module powerbi.extensibility.visual {
                     - this.axesSize.xAxisHeight
                     - (legendSize === null ? 0 : legendSize.height)
                     - this.xTickOffset
-                    - (this.scrollBar.isEnabled() ? this.scrollBar.settings.trackSize  : 0),
+                    - (this.scrollBar.isEnabled() ? this.scrollBar.settings.trackSize : 0),
             };
 
-            const yAxisMaxWidth = xAxisUtils.getXAxisMaxWidth(visualSize.width + this.yTickOffset, this.settings);
-            if (this.yTickOffset > yAxisMaxWidth + xAxisTitleThickness) {
-                visualSize.width = visualSize.width + this.yTickOffset - yAxisMaxWidth - xAxisTitleThickness;              
+            const xAxisMaxWidth = xAxisUtils.getXAxisMaxWidth(visualSize.height + this.xTickOffset, this.settings);
+            if (this.xTickOffset > xAxisMaxWidth + xAxisTitleThickness) {
+                visualSize.height = visualSize.height + this.xTickOffset - xAxisMaxWidth - xAxisTitleThickness;
+                this.xTickOffset = xAxisMaxWidth + xAxisTitleThickness;
+                this.maxXLabelsWidth = xAxisMaxWidth;
             }
  
             this.visualSize = visualSize;

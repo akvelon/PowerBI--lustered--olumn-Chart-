@@ -153,7 +153,7 @@ module powerbi.extensibility.visual {
 
                         let formattedString: string = dateColumnFormatter.format(new Date(index).toLocaleString("en-US", options));
 
-                        if (maxXLabelsWidth) {
+                        if (maxXLabelsWidth && maxXLabelsWidth !== Number.MAX_VALUE) {
 
                             let textProperties: TextProperties = {
                                 text: formattedString,
@@ -167,7 +167,7 @@ module powerbi.extensibility.visual {
                         return formattedString;
                     }
 
-                    if (maxXLabelsWidth) {
+                    if (maxXLabelsWidth && maxXLabelsWidth !== Number.MAX_VALUE) {
 
                         let textProperties: TextProperties = {
                             text: index.toString(),
@@ -224,7 +224,8 @@ module powerbi.extensibility.visual {
         public static render(settings: VisualSettings,
                         xAxisSvgGroup: d3.Selection<SVGElement>,
                         yAxisSvgGroup: d3.Selection<SVGElement>,
-                        axes: IAxes) {
+                        axes: IAxes, 
+                        maxYLabelsWidth = null) {
             // Now we call the axis funciton, that will render an axis on our visual.
             if (settings.valueAxis.show) {
                 yAxisSvgGroup.call(axes.y.axis);
@@ -442,6 +443,8 @@ module powerbi.extensibility.visual {
             return [start != null ? start : dataDomainMinY, end != null ? end : dataDomainMaxY];
         }
 
+        private static Blank: string = "(Blank)";
+
         public static calculateCategoryDomain(visibleDatapoints: VisualDataPoint[], 
             settings: VisualSettings, 
             metadata: VisualMeasureMetadata, 
@@ -450,13 +453,16 @@ module powerbi.extensibility.visual {
             const categoryType: valueType = axis.getCategoryValueType(metadata.cols.category);
             let isOrdinal: boolean = axis.isOrdinal(categoryType);
 
-            let dataDomainX = visibleDatapoints.map(d => <any>d.category).filter(d => !!d);
+            let dataDomainX = visibleDatapoints.map(d => <any>d.category);
             let xIsScalar: boolean = !isOrdinal;
             let axisType: string = !xIsScalar ? "categorical" : settings.categoryAxis.axisType;
 
             if (xIsScalar && axisType === "continuous") {
-                let dataDomainMinX: number = d3.min(visibleDatapoints, d => <number>d.category);
-                let dataDomainMaxX: number = d3.max(visibleDatapoints, d => <number>d.category);
+                dataDomainX = dataDomainX.filter(d => d !== this.Blank);
+                const noBlankCategoryDatapoints: VisualDataPoint[] = visibleDatapoints.filter(d => d.category !== this.Blank);
+
+                let dataDomainMinX: number = d3.min(noBlankCategoryDatapoints, d => <number>d.category);
+                let dataDomainMaxX: number = d3.max(noBlankCategoryDatapoints, d => <number>d.category);
 
                 const skipStartEnd: boolean = isSmallMultiple && settings.categoryAxis.rangeType !== AxisRangeType.Custom;
 

@@ -31,10 +31,12 @@ module powerbi.extensibility.visual.visualUtils {
         const skipCategoryStartEnd: boolean = isSmallMultiple && settings.categoryAxis.rangeType !== AxisRangeType.Custom,
             skipValueStartEnd: boolean = isSmallMultiple && settings.valueAxis.rangeType !== AxisRangeType.Custom;
 
-        const categoryAxisStartValue: number = categoryAxisIsContinuous && settings.categoryAxis.start ? settings.categoryAxis.start : 0;
+        const categoryAxisStartValue: number = categoryAxisIsContinuous && settings.categoryAxis.start ? settings.categoryAxis.start : -Number.MAX_VALUE;
         const categoryAxisEndValue: number = categoryAxisIsContinuous && settings.categoryAxis.end ? settings.categoryAxis.end : Number.MAX_VALUE;
 
         const thickness: number = dataPointThickness / clustersCount;
+
+        dataPointThickness = dataPointThickness < 10 / clustersCount ? dataPointThickness : 10 / clustersCount;
 
         dataPoints.forEach(point => {
             let width = 0;
@@ -58,7 +60,8 @@ module powerbi.extensibility.visual.visualUtils {
 
             let x: number = axes.x.scale(point.category);
             if (categoryAxisIsContinuous) {
-                x -= thickness / 2;
+                x -= dataPointThickness / 2;
+                //x -= thickness / 1.5;
             }
 
             if (point.shiftValue > axes.y.dataDomain[1]) {
@@ -113,9 +116,9 @@ module powerbi.extensibility.visual.visualUtils {
             };
         });
 
-        if (axes.xIsScalar && settings.categoryAxis.axisType !== "categorical") {
-            recalculateThicknessForContinuous(dataPoints, thickness, clustersCount);
-        }
+        //if (axes.xIsScalar && settings.categoryAxis.axisType !== "categorical") {
+          //  recalculateThicknessForContinuous(dataPoints, thickness, clustersCount);
+       // }
     }
 
     function setZeroCoordinatesForPoint(point: VisualDataPoint): void {
