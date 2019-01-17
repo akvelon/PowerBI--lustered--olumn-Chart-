@@ -35,8 +35,7 @@ module powerbi.extensibility.visual.visualUtils {
         const categoryAxisEndValue: number = categoryAxisIsContinuous && settings.categoryAxis.end ? settings.categoryAxis.end : Number.MAX_VALUE;
 
         const thickness: number = dataPointThickness / clustersCount;
-
-        dataPointThickness = dataPointThickness < 10 / clustersCount ? dataPointThickness : 10 / clustersCount;
+        dataPointThickness = dataPoints.length > 2 ? dataPointThickness : dataPointThickness / 2;
 
         dataPoints.forEach(point => {
             let width = 0;
@@ -44,8 +43,8 @@ module powerbi.extensibility.visual.visualUtils {
                 let start = skipCategoryStartEnd ? null : settings.categoryAxis.start,
                     end = skipCategoryStartEnd ? null : settings.categoryAxis.end;
 
-                width = start != null && start > point.category || dataPointThickness < 0 ? 0 : dataPointThickness;
-                width = end != null && end <= point.category ? 0 : dataPointThickness;
+                width = start != null && start > point.category || dataPointThickness < 0 ? 0 : dataPointThickness / clustersCount;
+                width = end != null && end <= point.category ? 0 : width;
             } else {
                 width = axes.x.scale.rangeBand() / clustersCount;
             }
@@ -60,8 +59,7 @@ module powerbi.extensibility.visual.visualUtils {
 
             let x: number = axes.x.scale(point.category);
             if (categoryAxisIsContinuous) {
-                x -= dataPointThickness / 2;
-                //x -= thickness / 1.5;
+                x -= width * clustersCount / 2;
             }
 
             if (point.shiftValue > axes.y.dataDomain[1]) {
@@ -325,7 +323,7 @@ module powerbi.extensibility.visual.visualUtils {
                                                 &&  end != null ? x.value <= end : true)
             }
 
-            let dataPointsCount: number = dataPoints.length;
+            let dataPointsCount: number = dataPoints.map(x => x.category).filter((v, i, a) => a.indexOf(v) === i).length;
 
             if (dataPointsCount < 3) {
                 let devider: number = 8;
