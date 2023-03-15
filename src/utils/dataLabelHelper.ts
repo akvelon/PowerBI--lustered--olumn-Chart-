@@ -1,158 +1,161 @@
-module powerbi.extensibility.visual {
-    export class DataLabelHelper {
-        public static labelBackgroundWidthPadding = 16.2;
-        public static labelBackgroundHeightPadding = 2;
-        public static labelBackgroundXShift = 7.5;
-        public static labelBackgroundYShift = -2;
-        private static dataLabelMargin: number = 6;
+"use strict";
 
-        public static canOverflow(settings: categoryLabelsSettings): boolean {
-            if (settings.labelPosition === LabelPosition.InsideCenter || settings.labelPosition === LabelPosition.InsideBase) {
-                return false;
-            } else if (settings.labelPosition === LabelPosition.OutsideEnd || settings.labelPosition === LabelPosition.Auto) {
-                return true;
-            } else if (settings.overflowText) {
-                return true;
-            }
+import { categoryLabelsSettings, LabelPosition } from "../settings";
+import { Coordinates, VisualDataPoint } from "../visualInterfaces";
 
+export class DataLabelHelper {
+    public static labelBackgroundWidthPadding = 16.2;
+    public static labelBackgroundHeightPadding = 2;
+    public static labelBackgroundXShift = 7.5;
+    public static labelBackgroundYShift = -2;
+    private static dataLabelMargin: number = 6;
+
+    public static canOverflow(settings: categoryLabelsSettings): boolean {
+        if (settings.labelPosition === LabelPosition.InsideCenter || settings.labelPosition === LabelPosition.InsideBase) {
             return false;
+        } else if (settings.labelPosition === LabelPosition.OutsideEnd || settings.labelPosition === LabelPosition.Auto) {
+            return true;
+        } else if (settings.overflowText) {
+            return true;
         }
 
-        private static calculateShiftForLegend(shift: number,
-                                                labelHeight: number,
-                                                barCoordinates: Coordinates,
-                                                settings: categoryLabelsSettings) {
+        return false;
+    }
 
-            let barY: number = barCoordinates.y,
-                barHeight: number = barCoordinates.height,
-                backGroundShift: number = settings.showBackground ? DataLabelHelper.labelBackgroundYShift : 0,
-                labelTopBorderPosition: number = shift - labelHeight + backGroundShift,
-                labelBottomBorderPosition: number = shift - backGroundShift;
-
-            let maxPossibleTopPosition: number = barY,
-                maxPossibleBottomPosition: number = barY + barHeight;
-
-            const gap: number = 4;
-
-            if (labelBottomBorderPosition + gap > maxPossibleBottomPosition) {
-                shift = maxPossibleBottomPosition + backGroundShift;
-
-                if (shift - labelHeight < maxPossibleTopPosition) {
-                    return null;
-                }
-            }
-
-            if (labelTopBorderPosition < maxPossibleTopPosition) {
-                shift = barY + labelHeight - backGroundShift;
-
-                if (shift > maxPossibleBottomPosition) {
-                    return null;
-                }
-            }
-
-            return shift;
-        }
-
-        private static calculateShiftForNoLegend(shift: number,
-                                                labelHeight: number,
-                                                chartHeight: number,
-                                                barCoordinates: Coordinates,
-                                                settings: categoryLabelsSettings) {
-
-            let barY: number = barCoordinates.y,
-                barHeight: number = barCoordinates.height,
-                backGroundShift: number = settings.showBackground ? DataLabelHelper.labelBackgroundYShift : 0,
-                labelTopBorderPosition: number = shift - labelHeight - backGroundShift,
-                labelBottomBorderPosition: number = shift + backGroundShift;
-
-            let canOverflow: boolean = DataLabelHelper.canOverflow(settings);
-
-            let maxPossibleTopPosition: number = canOverflow ? 0 : barY,
-                maxPossibleBottomPosition: number = canOverflow ? chartHeight : barY + barHeight;
-
-            if (labelBottomBorderPosition > maxPossibleBottomPosition) {
-                shift = maxPossibleBottomPosition - backGroundShift;
-
-                if (shift - labelHeight < maxPossibleTopPosition) {
-                    return null;
-                }
-            } else if (labelTopBorderPosition < maxPossibleTopPosition) {
-                shift = (settings.labelPosition === LabelPosition.OutsideEnd ? maxPossibleTopPosition + labelHeight - backGroundShift : barY + labelHeight - backGroundShift);
-
-                if (shift > maxPossibleBottomPosition) {
-                    return null;
-                }
-            }
-
-            return shift;
-        }
-
-        public static calculatePositionShift(settings: categoryLabelsSettings,
+    private static calculateShiftForLegend(shift: number,
                                             labelHeight: number,
-                                            dataPoint: VisualDataPoint,
-                                            chartHeight: number): number {
+                                            barCoordinates: Coordinates,
+                                            settings: categoryLabelsSettings) {
 
-            let barCoordinates: Coordinates = dataPoint.barCoordinates;
-            let shift: number = dataPoint.value >= 0 ? 
-                                    this.calculateLabelPositionShift(settings, labelHeight, barCoordinates) : 
-                                    this.calculateLabelPositionShiftForNegativeValues(settings, labelHeight, barCoordinates);
+        const barY: number = barCoordinates.y;
+        const barHeight: number = barCoordinates.height;
+        const backGroundShift: number = settings.showBackground ? DataLabelHelper.labelBackgroundYShift : 0;
+        const labelTopBorderPosition: number = shift - labelHeight + backGroundShift;
+        const labelBottomBorderPosition: number = shift - backGroundShift;
 
-            return this.calculateShiftForNoLegend(shift, labelHeight, chartHeight, barCoordinates, settings);
-        }
+        const maxPossibleTopPosition: number = barY;
+        const maxPossibleBottomPosition: number = barY + barHeight;
 
-        private static calculateLabelPositionShift(settings: categoryLabelsSettings,
-            labelHeight: number,
-            barCoordinates: Coordinates): number {
+        const gap: number = 4;
 
-            const backgroundMargin: number = settings.showBackground ? 2 : 0;
+        if (labelBottomBorderPosition + gap > maxPossibleBottomPosition) {
+            shift = maxPossibleBottomPosition + backGroundShift;
 
-            let barY: number = barCoordinates.y,
-                barHeight: number = barCoordinates.height;
-
-            switch (settings.labelPosition) {
-                case LabelPosition.OutsideEnd: {
-                    return barY  - this.dataLabelMargin - backgroundMargin;
-                }
-                case LabelPosition.InsideEnd: {
-                    return barY + labelHeight + backgroundMargin + this.dataLabelMargin;
-                }
-                case LabelPosition.InsideBase: {
-                    return barY + barHeight - this.dataLabelMargin - backgroundMargin;
-                }
-                case LabelPosition.InsideCenter: {
-                    return barY + barHeight / 2 + labelHeight / 2;
-                }
-                default: {
-                    return barY  - this.dataLabelMargin - backgroundMargin;
-                }
+            if (shift - labelHeight < maxPossibleTopPosition) {
+                return null;
             }
         }
 
-        private static calculateLabelPositionShiftForNegativeValues(settings: categoryLabelsSettings,
-            labelHeight: number,
-            barCoordinates: Coordinates): number {
+        if (labelTopBorderPosition < maxPossibleTopPosition) {
+            shift = barY + labelHeight - backGroundShift;
 
-            const backgroundMargin: number = settings.showBackground ? 2 : 0;
+            if (shift > maxPossibleBottomPosition) {
+                return null;
+            }
+        }
 
-            let barY: number = barCoordinates.y,
-                barHeight: number = barCoordinates.height;
+        return shift;
+    }
 
-            switch (settings.labelPosition) {
-                case LabelPosition.OutsideEnd: {
-                    return barY + barHeight + labelHeight + this.dataLabelMargin + backgroundMargin;
-                }
-                case LabelPosition.InsideEnd: {
-                    return barY + barHeight - backgroundMargin - this.dataLabelMargin;
-                }
-                case LabelPosition.InsideBase: {
-                    return barY - labelHeight + this.dataLabelMargin + backgroundMargin;
-                }
-                case LabelPosition.InsideCenter: {
-                    return barY + barHeight / 2 + labelHeight / 2;
-                }
-                default: {
-                    return barY  - this.dataLabelMargin - backgroundMargin;
-                }
+    private static calculateShiftForNoLegend(shift: number,
+                                            labelHeight: number,
+                                            chartHeight: number,
+                                            barCoordinates: Coordinates,
+                                            settings: categoryLabelsSettings) {
+
+        const barY: number = barCoordinates.y;
+        const barHeight: number = barCoordinates.height;
+        const backGroundShift: number = settings.showBackground ? DataLabelHelper.labelBackgroundYShift : 0;
+        const labelTopBorderPosition: number = shift - labelHeight - backGroundShift;
+        const labelBottomBorderPosition: number = shift + backGroundShift;
+
+        const canOverflow: boolean = DataLabelHelper.canOverflow(settings);
+
+        const maxPossibleTopPosition: number = canOverflow ? 0 : barY,
+            maxPossibleBottomPosition: number = canOverflow ? chartHeight : barY + barHeight;
+
+        if (labelBottomBorderPosition > maxPossibleBottomPosition) {
+            shift = maxPossibleBottomPosition - backGroundShift;
+
+            if (shift - labelHeight < maxPossibleTopPosition) {
+                return null;
+            }
+        } else if (labelTopBorderPosition < maxPossibleTopPosition) {
+            shift = (settings.labelPosition === LabelPosition.OutsideEnd ? maxPossibleTopPosition + labelHeight - backGroundShift : barY + labelHeight - backGroundShift);
+
+            if (shift > maxPossibleBottomPosition) {
+                return null;
+            }
+        }
+
+        return shift;
+    }
+
+    public static calculatePositionShift(settings: categoryLabelsSettings,
+                                        labelHeight: number,
+                                        dataPoint: VisualDataPoint,
+                                        chartHeight: number): number {
+
+        const barCoordinates: Coordinates = dataPoint.barCoordinates;
+        const shift: number = dataPoint.value >= 0 ? 
+                                this.calculateLabelPositionShift(settings, labelHeight, barCoordinates) : 
+                                this.calculateLabelPositionShiftForNegativeValues(settings, labelHeight, barCoordinates);
+
+        return this.calculateShiftForNoLegend(shift, labelHeight, chartHeight, barCoordinates, settings);
+    }
+
+    private static calculateLabelPositionShift(settings: categoryLabelsSettings,
+        labelHeight: number,
+        barCoordinates: Coordinates): number {
+
+        const backgroundMargin: number = settings.showBackground ? 2 : 0;
+
+        const barY: number = barCoordinates.y,
+            barHeight: number = barCoordinates.height;
+
+        switch (settings.labelPosition) {
+            case LabelPosition.OutsideEnd: {
+                return barY  - this.dataLabelMargin - backgroundMargin;
+            }
+            case LabelPosition.InsideEnd: {
+                return barY + labelHeight + backgroundMargin + this.dataLabelMargin;
+            }
+            case LabelPosition.InsideBase: {
+                return barY + barHeight - this.dataLabelMargin - backgroundMargin;
+            }
+            case LabelPosition.InsideCenter: {
+                return barY + barHeight / 2 + labelHeight / 2;
+            }
+            default: {
+                return barY  - this.dataLabelMargin - backgroundMargin;
+            }
+        }
+    }
+
+    private static calculateLabelPositionShiftForNegativeValues(settings: categoryLabelsSettings,
+        labelHeight: number,
+        barCoordinates: Coordinates): number {
+
+        const backgroundMargin: number = settings.showBackground ? 2 : 0;
+
+        const barY: number = barCoordinates.y,
+            barHeight: number = barCoordinates.height;
+
+        switch (settings.labelPosition) {
+            case LabelPosition.OutsideEnd: {
+                return barY + barHeight + labelHeight + this.dataLabelMargin + backgroundMargin;
+            }
+            case LabelPosition.InsideEnd: {
+                return barY + barHeight - backgroundMargin - this.dataLabelMargin;
+            }
+            case LabelPosition.InsideBase: {
+                return barY - labelHeight + this.dataLabelMargin + backgroundMargin;
+            }
+            case LabelPosition.InsideCenter: {
+                return barY + barHeight / 2 + labelHeight / 2;
+            }
+            default: {
+                return barY  - this.dataLabelMargin - backgroundMargin;
             }
         }
     }
