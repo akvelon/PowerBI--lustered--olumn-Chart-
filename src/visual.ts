@@ -792,7 +792,7 @@ export class Visual implements IVisual {
                     this.data.axes = defaultAxes;
                 }
 
-                const barHeight: number = !xIsScalar || this.settings.categoryAxis.axisType === "categorical" ? axes.x.scale.rangeBand() : visualUtils.calculateDataPointThickness(
+                const barHeight: number = !xIsScalar || this.settings.categoryAxis.axisType === "categorical" ? axes.x.scale.bandwidth() : visualUtils.calculateDataPointThickness(
                     dataPoints,
                     barsSectionSize,
                     uniqueCategories.length,
@@ -1342,7 +1342,7 @@ export class Visual implements IVisual {
         let isReverted: boolean = false;
 
         if (this.data && (!this.data.axes.xIsScalar || this.settings.categoryAxis.axisType !== "continuous")) {
-            isReverted = !!this.maxXLabelsWidth || xAxisMaxLableWidth > (this.data.axes.x.scale.rangeBand ? this.data.axes.x.scale.rangeBand() : 0 + innerPadding);
+            isReverted = !!this.maxXLabelsWidth || xAxisMaxLableWidth > (this.data.axes.x.scale.rangeBand ? this.data.axes.x.scale.bandwidth() : 0 + innerPadding);
         }
 
         const titleSize: number = (showXAxisTitle

@@ -77,7 +77,7 @@ export function calculateBarCoordianates(dataPoints: VisualDataPoint[],
             width = start != null && start > point.category || dataPointThickness < 0 ? 0 : dataPointThickness / clustersCount;
             width = end != null && end <= point.category ? 0 : width;
         } else {
-            width = axes.x.scale.rangeBand() / clustersCount;
+            width = axes.x.scale.bandwidth() / clustersCount;
         }
 
         if (categoryAxisIsContinuous){
@@ -386,7 +386,7 @@ export function getLabelsMaxWidth(group: d3Group<any>): number | undefined {
 export function getLabelsMaxHeight(group: d3Group<any>): number | undefined {
     const heights: Array<number> = [];
 
-    group.node().forEach((item: any) => {
+    group.nodes().forEach((item: any) => {
         const dimension: ClientRect = item.getBoundingClientRect();
         heights.push(dimension.height);
     });

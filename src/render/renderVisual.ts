@@ -165,13 +165,19 @@ export class RenderVisual {
             return;
         }
 
-        const backgroundSelection: d3Update<VisualDataPoint> = dataLabelsBackgroundContext
+        let backgroundSelection: d3Update<VisualDataPoint> = dataLabelsBackgroundContext
                     .selectAll(RenderVisual.Label.selectorName)
                     .data(dataPoints);
-
+        
         backgroundSelection
+            .exit()
+            .remove();
+
+        const backgroundSelectionEnter = backgroundSelection
             .enter()
             .append("svg:rect");
+
+        backgroundSelection = backgroundSelection.merge(backgroundSelectionEnter);
 
         backgroundSelection
             .attr("height", d => {
@@ -193,10 +199,6 @@ export class RenderVisual {
         backgroundSelection
             .style( "fill-opacity", (100 - settings.categoryLabels.transparency) / 100)
             .style("pointer-events", "none")
-
-        backgroundSelection
-            .exit()
-            .remove();
     }
 
     public static renderDataLabelsBackgroundForSmallMultiple(
@@ -213,14 +215,20 @@ export class RenderVisual {
             return;
         }
 
-        const dataPointsArray: VisualDataPoint[] = this.filterData(dataPoints || data.dataPoints),
-            backgroundSelection: d3Update<VisualDataPoint> = dataLabelsBackgroundContext
+        const dataPointsArray: VisualDataPoint[] = this.filterData(dataPoints || data.dataPoints);
+        let backgroundSelection: d3Update<VisualDataPoint> = dataLabelsBackgroundContext
                     .selectAll(RenderVisual.Label.selectorName)
                     .data(dataPointsArray);
 
         backgroundSelection
+            .exit()
+            .remove();
+
+        const backgroundSelectionEnter = backgroundSelection
             .enter()
             .append("svg:rect");
+
+        backgroundSelection = backgroundSelection.merge(backgroundSelectionEnter);
 
         backgroundSelection
             .attr("height", d => {
@@ -241,11 +249,7 @@ export class RenderVisual {
 
         backgroundSelection
         .style("fill-opacity", (100 - settings.categoryLabels.transparency) / 100)
-        .style("pointer-events", "none")
-
-        backgroundSelection
-            .exit()
-            .remove();
+        .style("pointer-events", "none");
     }
 
     public static renderDataLabelsForSmallMultiple(
@@ -263,10 +267,14 @@ export class RenderVisual {
             return;
         }
 
-        const dataPointsArray: VisualDataPoint[] = this.filterData(dataPoints || data.dataPoints),
-            labelSelection: d3Update<VisualDataPoint> = dataLabelsContext
+        const dataPointsArray: VisualDataPoint[] = this.filterData(dataPoints || data.dataPoints);
+        let labelSelection: d3Update<VisualDataPoint> = dataLabelsContext
                     .selectAll(RenderVisual.Label.selectorName)
                     .data(dataPointsArray);
+        
+        labelSelection
+            .exit()
+            .remove();
 
         const dataLabelFormatter: IValueFormatter =
                 createFormatter(labelSettings.displayUnits,
@@ -274,12 +282,14 @@ export class RenderVisual {
                                                 metadata.cols.value,
                                                 getValueForFormatter(data));
 
-        labelSelection
+        const labelSelectionEnter = labelSelection
             .enter()
             .append("svg:text");
 
         const fontSizeInPx: string = PixelConverter.fromPoint(labelSettings.fontSize);
         const fontFamily: string = labelSettings.fontFamily ? labelSettings.fontFamily : dataLabelUtils.LabelTextProperties.fontFamily;
+
+        labelSelection = labelSelection.merge(labelSelectionEnter);
 
         labelSelection
             .attr("transform", (p: VisualDataPoint) => {
@@ -292,10 +302,6 @@ export class RenderVisual {
             .style("font-family", fontFamily)
             .style("pointer-events", "none")
             .text((p: VisualDataPoint) => dataLabelFormatter.format(p.value));
-
-        labelSelection
-            .exit()
-            .remove();
     }
 
     public static renderSmallMultipleTopTitle(options: SmallMultipleOptions, settings: smallMultipleSettings) {
@@ -310,15 +316,17 @@ export class RenderVisual {
             fontFamily: string = settings.fontFamily;
 
         const topTitles: d3Selection<SVGElement> = chartElement.append("svg");
-        const topTitlestext: d3Update<PrimitiveValue> = topTitles.selectAll("*").data([uniqueColumns[index]]);
-
-        topTitlestext.enter()
-            .append("text")
-            .attr("class", Selectors.AxisLabelSelector.className);
+        let topTitlestext: d3Update<PrimitiveValue> = topTitles.selectAll("*").data([uniqueColumns[index]]);
 
         // For removed categories, remove the SVG group.
         topTitlestext.exit()
             .remove();
+
+        const  topTitlestextEnter = topTitlestext.enter()
+            .append("text")
+            .attr("class", Selectors.AxisLabelSelector.className);
+
+        topTitlestext = topTitlestext.merge(topTitlestextEnter);
 
         const textProperties: TextProperties = {
             fontFamily,
@@ -357,40 +365,40 @@ export class RenderVisual {
         settings: VisualSettings,
         dataLabelsContext: d3Selection<any>): void {
 
-        const labelSettings: categoryLabelsSettings = settings.categoryLabels;
+            const labelSettings: categoryLabelsSettings = settings.categoryLabels;
 
-        dataLabelsContext.selectAll("*").remove();
+            dataLabelsContext.selectAll("*").remove();
 
-        if (!labelSettings.show) {
-            return;
-        }
+            if (!labelSettings.show) {
+                return;
+            }
 
-        const  labelSelection: d3Update<VisualDataPoint> = dataLabelsContext
-                    .selectAll(RenderVisual.Label.selectorName)
-                    .data(dataPoints);
+            let labelSelection: d3Update<VisualDataPoint> = dataLabelsContext
+                        .selectAll(RenderVisual.Label.selectorName)
+                        .data(dataPoints);
 
-        labelSelection
-            .enter()
-            .append("svg:text");
+            labelSelection
+                .exit()
+                .remove();
 
-        const fontSizeInPx: string = PixelConverter.fromPoint(labelSettings.fontSize);
-        const fontFamily: string = labelSettings.fontFamily ? labelSettings.fontFamily : dataLabelUtils.LabelTextProperties.fontFamily;
+            const labelSelectionEnter = labelSelection
+                .enter()
+                .append("svg:text");
 
-        labelSelection
-            .attr("transform", (p: VisualDataPoint) => {
-                return svg.translate(p.labelCoordinates.x, p.labelCoordinates.y) + (labelSettings.orientation === LabelOrientation.Horizontal ? "" : "rotate(-90)");
-            });
+                labelSelection = labelSelection.merge(labelSelectionEnter);
 
-        labelSelection
-            .style("fill", labelSettings.color)
-            .style("font-size", fontSizeInPx)
-            .style("font-family", fontFamily)
-            .style("pointer-events", "none")
-            .text((p: VisualDataPoint) => dataLabelFormatter.format(p.value));
+            const fontSizeInPx: string = PixelConverter.fromPoint(labelSettings.fontSize);
+            const fontFamily: string = labelSettings.fontFamily ? labelSettings.fontFamily : dataLabelUtils.LabelTextProperties.fontFamily;
 
-        labelSelection
-            .exit()
-            .remove();
+            labelSelection
+                .attr("transform", (p: VisualDataPoint) => {
+                    return svg.translate(p.labelCoordinates.x, p.labelCoordinates.y) + (labelSettings.orientation === LabelOrientation.Horizontal ? "" : "rotate(-90)");
+                })
+                .style("fill", labelSettings.color)
+                .style("font-size", fontSizeInPx)
+                .style("font-family", fontFamily)
+                .style("pointer-events", "none")
+                .text((p: VisualDataPoint) => dataLabelFormatter.format(p.value));
     }
 
     public static filterData(dataPoints: VisualDataPoint[]): VisualDataPoint[] {
@@ -447,7 +455,7 @@ export class RenderVisual {
         const y = axes.y.scale(yValue);
         const x = axes.x.scale(axes.x.dataDomain[0]);
 
-        if (line[0][0]) {
+        if (line.node()) {
             element.selectAll("line").remove();
         } 
 
