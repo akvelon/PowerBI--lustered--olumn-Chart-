@@ -805,7 +805,7 @@ export class Visual implements IVisual {
 
                 if (xIsCustom) {
                     let divider: number = 1;
-                    const xText = xAxisSvgGroup.selectAll("text")[0];
+                    const xText: any = xAxisSvgGroup.select("text").node();
 
                     const axisWidth = (xText.parentNode  as SVGGraphicsElement).getBBox().width;
                     const maxTextWidth = visualUtils.getLabelsMaxWidth(xText);
@@ -1326,8 +1326,8 @@ export class Visual implements IVisual {
     }
 
     private calculateOffsets() {
-        const xtickText: d3Group<any> = this.xAxisSvgGroup.selectAll("text")[0];
-        const ytickText: d3Group<any> = this.yAxisSvgGroup.selectAll("text")[0];
+        const xtickText: d3Group<any> = this.xAxisSvgGroup.selectAll("text");
+        const ytickText: d3Group<any> = this.yAxisSvgGroup.selectAll("text");
 
         const showXAxisTitle: boolean = this.settings.categoryAxis.show && this.settings.categoryAxis.showTitle;
         const showYAxisTitle: boolean = this.settings.valueAxis.show && this.settings.valueAxis.showTitle;
