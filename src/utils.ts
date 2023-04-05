@@ -20,10 +20,6 @@ import IValueFormatter = ValueFormatter.IValueFormatter;
 
 import { valueType } from "powerbi-visuals-utils-typeutils";
 
-// import * as formattingUtils from "./utils/formattingUtils";
-// import { DataLabelHelper } from "./utils/dataLabelHelper";
-
-
 import * as visualUtils from "./utils";
 
 import { Field } from "./dataViewConverter";
@@ -31,14 +27,6 @@ import { IAxisProperties } from "powerbi-visuals-utils-chartutils/lib/axis/axisI
 import { max, min } from 'd3-array';
 import { createFormatter, getTextProperties, getTextPropertiesForHeightCalculation, getValueForFormatter } from './utils/formattingUtils';
 import { DataLabelHelper } from './utils/dataLabelHelper';
-
-    // import IAxisProperties = powerbi.extensibility.utils.chart.axis.IAxisProperties;
-    // import TextMeasurementService = powerbi.extensibility.utils.formatting.textMeasurementService;
-    // import TextProperties = powerbi.extensibility.utils.formatting.TextProperties;
-    // import IValueFormatter = powerbi.extensibility.utils.formatting.IValueFormatter;     
-    // import PixelConverter = powerbi.extensibility.utils.type.PixelConverter;
-    // import axis = powerbi.extensibility.utils.chart.axis;
-    // import valueType = powerbi.extensibility.utils.type.ValueType;
 
 const DisplayUnitValue: number = 1;
 

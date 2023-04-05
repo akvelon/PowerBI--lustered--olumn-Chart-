@@ -35,7 +35,7 @@ import { WebBehaviorOptions } from "../behavior";
 import { DataLabelHelper } from "../utils/dataLabelHelper";
 import { createFormatter, getValueForFormatter } from "../utils/formattingUtils";
 
-class Selectors {
+export class Selectors {
     public static BarSelect = CssConstants.createClassAndSelector("bar");
     public static BarGroupSelect = CssConstants.createClassAndSelector("bar-group");
     public static AxisLabelSelector = CssConstants.createClassAndSelector("axisLabel");
@@ -56,35 +56,38 @@ export class RenderVisual {
         settings: VisualSettings) {
         // Select all bar groups in our chart and bind them to our categories.
         // Each group will contain a set of bars, one for each of the values in category.
-        const barGroupSelect = visualSvgGroup.selectAll(Selectors.BarGroupSelect.selectorName)
+        let barGroupSelect = visualSvgGroup.selectAll(Selectors.BarGroupSelect.selectorName)
             .data([data.dataPoints]);
-
-        // When a new category added, create a new SVG group for it.
-        barGroupSelect.enter()
-            .append("g")
-            .attr("class", Selectors.BarGroupSelect.className);
 
         // For removed categories, remove the SVG group.
         barGroupSelect.exit()
             .remove();
 
+        // When a new category added, create a new SVG group for it.
+        const barGroupSelectEnter = barGroupSelect.enter()
+            .append("g")
+            .attr("class", Selectors.BarGroupSelect.className);
+
+        barGroupSelect = barGroupSelect.merge(barGroupSelectEnter);
         // Update the position of existing SVG groups.
         // barGroupSelect.attr("transform", d => `translate(0, ${data.axes.y(d.category)})`);
 
         // Now we bind each SVG group to the values in corresponding category.
         // To keep the length of the values array, we transform each value into object,
         // that contains both value and total count of all values in this category.
-        const barSelect = barGroupSelect
+        let barSelect = barGroupSelect
             .selectAll(Selectors.BarSelect.selectorName)
             .data(data.dataPoints);
-
-        // For each new value, we create a new rectange.
-        barSelect.enter().append("rect")
-            .attr("class", Selectors.BarSelect.className);
 
         // Remove rectangles, that no longer have matching values.
         barSelect.exit()
             .remove();
+
+        // For each new value, we create a new rectange.
+        const barSelectEnter = barSelect.enter().append("rect")
+            .attr("class", Selectors.BarSelect.className);
+
+        barSelect = barSelect.merge(barSelectEnter);
 
         barSelect
             .attr("height", d => {
@@ -350,7 +353,7 @@ export class RenderVisual {
                 return null;
             })
             .call((text: d3Selection<any>) => {
-                const textSelectionX: d3Selection<any> = d3.select(text[0][0]);
+                const textSelectionX: d3Selection<any> = d3.select(text.nodes()[0]);
                 const x = leftSpace + chartSize.width / 2;
 
                 textSelectionX.attr(
@@ -493,7 +496,7 @@ export class RenderVisual {
 
         let label: d3Selection<any> = element.select(".const-label");
 
-        if (label[0][0]) {
+        if (label.nodes()[0]) {
             element.selectAll("text").remove();
         }
 
@@ -631,20 +634,21 @@ export class RenderVisual {
 
         if (settings.layoutMode === LayoutMode.Matrix) {
             const topTitles: d3Selection<SVGElement> = chartElement.append("svg");
-            const topTitlestext: d3Update<PrimitiveValue> = topTitles.selectAll("*").data(uniqueColumns);
-
-            topTitlestext.enter()
-                .append("text")
-                .attr("class", Selectors.AxisLabelSelector.className);
+            let topTitlestext: d3Update<PrimitiveValue> = topTitles.selectAll("*").data(uniqueColumns);
 
             // For removed categories, remove the SVG group.
             topTitlestext.exit()
                 .remove();
 
+            const topTitlestextEnter = topTitlestext.enter()
+                .append("text")
+                .attr("class", Selectors.AxisLabelSelector.className);
             const textProperties: TextProperties = {
                 fontFamily,
                 fontSize: fontSizeInPx
-            }        
+            }
+
+            topTitlestext = topTitlestext.merge(topTitlestextEnter);   
 
             topTitlestext
                 .style("text-anchor", "middle")
@@ -662,7 +666,7 @@ export class RenderVisual {
                 })
                 .call((text: d3Selection<any>) => {
                     for (let j = 0; j < uniqueColumns.length; ++j) { 
-                        const textSelectionX: d3Selection<any> = d3.select(text[0][j]);
+                        const textSelectionX: d3Selection<any> = d3.select(text.nodes()[j]);
                         const x = leftSpace + j * chartSize.width + chartSize.width / 2 + this.gapBetweenCharts * j;
 
                         textSelectionX.attr(
@@ -680,17 +684,19 @@ export class RenderVisual {
         }
 
         const leftTitles: d3Selection<SVGElement> = chartElement.append("svg");
-        const leftTitlesText: d3Update<PrimitiveValue> = leftTitles.selectAll("*").data(uniqueRows);
-
-        leftTitlesText.enter()
-            .append("text")
-            .attr("class", Selectors.AxisLabelSelector.className);
+        let leftTitlesText: d3Update<PrimitiveValue> = leftTitles.selectAll("*").data(uniqueRows);
 
         // For removed categories, remove the SVG group.
         leftTitlesText.exit()
             .remove();
 
-            leftTitlesText.style("text-anchor", "middle")
+        const leftTitlesTextEnter = leftTitlesText.enter()
+            .append("text")
+            .attr("class", Selectors.AxisLabelSelector.className);
+
+        leftTitlesText = leftTitlesText.merge(leftTitlesTextEnter);
+
+        leftTitlesText.style("text-anchor", "middle")
             .style("font-size", fontSizeInPx)
             .style("font-family", fontFamily)
             .style("fill", settings.fontColor)
@@ -704,7 +710,7 @@ export class RenderVisual {
             })
             .call((text: d3Selection<any>) => {
                 for (let i = 0; i < uniqueRows.length; ++i) { 
-                    const textSelectionX: d3Selection<any> = d3.select(text[0][i]);
+                    const textSelectionX: d3Selection<any> = d3.select(text.nodes()[i]);
                     let y = 0;
 
                     if (settings.layoutMode === LayoutMode.Flow) {

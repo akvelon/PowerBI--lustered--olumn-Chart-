@@ -68,7 +68,7 @@ import { pixelConverter as PixelConverter} from "powerbi-visuals-utils-typeutils
 import { LassoSelection } from "./lassoSelectionUtil";
 import { LassoSelectionForSmallMultiple } from "./lassoSelectionUtilForSmallMultiple";
 import { ScrollBar } from "./scrollbarUtil";
-import { createFormatter, getValueForFormatter } from "./utils/formattingUtils";
+import * as formattingUtils from "./utils/formattingUtils";
 
 class Selectors {
     public static MainSvg = CssConstants.createClassAndSelector("bar-chart-svg");
@@ -357,6 +357,7 @@ export class Visual implements IVisual {
         if (!this.optionsAreValid(options)) {
             return;
         }
+        debugger;
 
         const dataView = options && options.dataViews && options.dataViews[0];
 
@@ -391,7 +392,7 @@ export class Visual implements IVisual {
         const savedSelection = this.settings.selectionSaveSettings.selection;
 
         const selected: any[] = this.mainElement.selectAll(`.legendItem, ${Selectors.BarSelect.selectorName}`).data().filter(d => {
-            return savedSelection.some(savedD => savedD.identity.key === (<any>d).identity.key);
+            return savedSelection.some(savedD => savedD.identity?.key === (<any>d).identity.key);
         });
 
         if (selected.length > 0){
@@ -1232,10 +1233,10 @@ export class Visual implements IVisual {
         );
 
         const dataLabelFormatter: IValueFormatter =
-                createFormatter(this.settings.categoryLabels.displayUnits,
-                                                this.settings.categoryLabels.precision,
-                                                this.metadata.cols.value,
-                                                getValueForFormatter(this.data));
+            formattingUtils.createFormatter(this.settings.categoryLabels.displayUnits,
+                                                    this.settings.categoryLabels.precision,
+                                                    this.metadata.cols.value,
+                                                    formattingUtils.getValueForFormatter(this.data));
 
         RenderVisual.renderDataLabels(
             filteredDataLabels,
