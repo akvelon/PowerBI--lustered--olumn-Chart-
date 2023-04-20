@@ -624,11 +624,7 @@ export class Visual implements IVisual {
         this.prepareMainDiv(this.mainElement);
         this.mainElement.select('.scrollbar-track').remove();
 
-        let legendSize: LegendSize = {
-            width: 0,
-            height: 0,
-        };
-
+        let legendSize: LegendSize;
         if (this.isLegendNeeded) {
             legendUtils.renderLegend(this.legend, this.mainDivElement, this.viewport, this.legendProperties);
             legendSize = this.calculateLegendSize(this.settings.legend, this.legendElementRoot);
@@ -894,15 +890,18 @@ export class Visual implements IVisual {
                     hasSelection: boolean = interactivityService.hasSelection();
                 interactivityService.applySelectionStateToData(dataPoints);
 
-                const barSelect = barGroup
+                let barSelect = barGroup
                     .selectAll(Selectors.BarSelect.selectorName)
                     .data(dataPoints);
 
-                barSelect.enter().append('rect')
-                    .attr('class', Selectors.BarSelect.className);
-
                 barSelect.exit()
                     .remove();
+
+                const barSelectEnter = barSelect.enter()
+                    .append('rect')
+                    .classed(Selectors.BarSelect.className, true);
+
+                barSelect = barSelect.merge(barSelectEnter);
 
                 barSelect
                     .attr('height', d => {
