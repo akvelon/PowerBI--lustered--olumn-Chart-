@@ -1,6 +1,6 @@
-"use strict";
+'use strict';
 
-import powerbiApi from "powerbi-visuals-api";
+import powerbiApi from 'powerbi-visuals-api';
 import DataView = powerbiApi.DataView;
 import IVisualHost = powerbiApi.extensibility.visual.IVisualHost;
 import DataViewValueColumns = powerbiApi.DataViewValueColumns;
@@ -14,28 +14,29 @@ import DataViewCategoryColumn = powerbiApi.DataViewCategoryColumn;
 import PrimitiveValue = powerbiApi.PrimitiveValue;
 import DataViewCategorical = powerbiApi.DataViewCategorical;
 
-import { VisualColumns, VisualDataPoint } from "./visualInterfaces";
-import { converterHelper } from "powerbi-visuals-utils-dataviewutils";
-import { valueFormatter as ValueFormatter} from "powerbi-visuals-utils-formattingutils";
-import { ColorHelper } from "powerbi-visuals-utils-colorutils";
+import {VisualColumns, VisualDataPoint} from './visualInterfaces';
+import {converterHelper} from 'powerbi-visuals-utils-dataviewutils';
+import {valueFormatter as ValueFormatter} from 'powerbi-visuals-utils-formattingutils';
+import {ColorHelper} from 'powerbi-visuals-utils-colorutils';
 
-import { VisualSettings } from "./settings";
+import {VisualSettings} from './settings';
 
 
 export enum Field {
-    Axis = <any>"Axis",
-    Legend = <any>"Legend",
-    Value = <any>"Value",
-    Gradient = <any>"Gradient",
-    ColumnBy = <any>"ColumnBy",
-    RowBy = <any>"RowBy",
-    Tooltips = <any>"Tooltips",
-    GroupedValues = <any>"GroupedValues"
+    Axis = <any>'Axis',
+    Legend = <any>'Legend',
+    Value = <any>'Value',
+    Gradient = <any>'Gradient',
+    ColumnBy = <any>'ColumnBy',
+    RowBy = <any>'RowBy',
+    Tooltips = <any>'Tooltips',
+    GroupedValues = <any>'GroupedValues'
 }
 
-export class DataViewConverter<T> {
-    private static Highlighted: string = "Highlighted";
-    private static Blank: string = "(Blank)";
+export class DataViewConverter {
+    private static Highlighted: string = 'Highlighted';
+    private static Blank: string = '(Blank)';
+
     public static Convert(dataView: DataView, hostService: IVisualHost, settings: VisualSettings, legendColors: Array<string>): VisualDataPoint[] {
 
         if (this.IsAxisAndLegendSameField(dataView)) {
@@ -64,9 +65,9 @@ export class DataViewConverter<T> {
     }
 
     public static IsAxisFilled(dataView: DataView): boolean {
-        if (dataView.categorical 
-            && dataView.categorical.values 
-            && dataView.categorical.values.source 
+        if (dataView.categorical
+            && dataView.categorical.values
+            && dataView.categorical.values.source
             && dataView.categorical.values.source.roles[Field.Axis]) {
             return true;
         }
@@ -81,9 +82,9 @@ export class DataViewConverter<T> {
     }
 
     public static IsCategoryFilled(dataView: DataView, categoryField: Field): boolean {
-        if (dataView.categorical 
-            && dataView.categorical.values 
-            && dataView.categorical.values.source 
+        if (dataView.categorical
+            && dataView.categorical.values
+            && dataView.categorical.values.source
             && dataView.categorical.values.source.roles[categoryField]) {
             return true;
         }
@@ -184,7 +185,7 @@ export class DataViewConverter<T> {
                     selected: false,
                     identity: identity,
                     color: color,
-                    tooltips: tooltipItems
+                    tooltips: tooltipItems,
                 });
 
                 const highlightValue: number = columns[Field.Value][k].highlights ? columns[Field.Value][k].highlights[0] : null;
@@ -203,7 +204,7 @@ export class DataViewConverter<T> {
                         identity: identity,
                         highlight: true,
                         color: color,
-                        tooltips: highlightTooltipItems
+                        tooltips: highlightTooltipItems,
                     });
                 }
             }
@@ -259,7 +260,7 @@ export class DataViewConverter<T> {
                     }
 
                     data.push({
-                        category: categoryValue !== 0 && !categoryValue ? "(Blank)" : categoryValue,
+                        category: categoryValue !== 0 && !categoryValue ? '(Blank)' : categoryValue,
                         series: legend,
                         value: value,
                         shiftValue: sum,
@@ -268,7 +269,7 @@ export class DataViewConverter<T> {
                         tooltips: tooltipItems,
                         color: color,
                         columnBy: columnBy,
-                        rowBy: rowBy
+                        rowBy: rowBy,
                     });
 
                     const highlightValue: number = columns[Field.Value][k].highlights ? columns[Field.Value][k].highlights[i] : null;
@@ -279,7 +280,7 @@ export class DataViewConverter<T> {
                         highlightTooltipItems.push(this.createTooltipData(valueMetadata, highlightValue, this.Highlighted));
 
                         data.push({
-                            category: categoryValue !== 0 && !categoryValue ? "(Blank)" : categoryValue,
+                            category: categoryValue !== 0 && !categoryValue ? '(Blank)' : categoryValue,
                             series: legend,
                             value: highlightValue,
                             shiftValue: sum,
@@ -289,7 +290,7 @@ export class DataViewConverter<T> {
                             tooltips: highlightTooltipItems,
                             color: color,
                             columnBy: columnBy,
-                            rowBy: rowBy
+                            rowBy: rowBy,
                         });
                     }
                 }
@@ -343,7 +344,7 @@ export class DataViewConverter<T> {
                     }
 
                     data.push({
-                        category: category !== 0 && !category ? "(Blank)" : category,
+                        category: category !== 0 && !category ? '(Blank)' : category,
                         value: value,
                         shiftValue: sum,
                         selected: false,
@@ -351,7 +352,7 @@ export class DataViewConverter<T> {
                         tooltips: tooltipItems,
                         color: color,
                         columnBy: columnBy,
-                        rowBy: rowBy
+                        rowBy: rowBy,
                     });
 
                     const highlightValue: number = valueColumn.highlights ? valueColumn.highlights[i] : null;
@@ -362,7 +363,7 @@ export class DataViewConverter<T> {
                         highlightTooltipItems.push(this.createTooltipData(valueMetadata, highlightValue, this.Highlighted));
 
                         data.push({
-                            category: category !== 0 && !category ? "(Blank)" : category,
+                            category: category !== 0 && !category ? '(Blank)' : category,
                             value: highlightValue,
                             shiftValue: sum,
                             selected: false,
@@ -371,7 +372,7 @@ export class DataViewConverter<T> {
                             tooltips: tooltipItems,
                             color: color,
                             columnBy: columnBy,
-                            rowBy: rowBy
+                            rowBy: rowBy,
                         });
                     }
                 }
@@ -394,10 +395,10 @@ export class DataViewConverter<T> {
         const colorHelper = new ColorHelper(
             hostService.colorPalette,
             {
-                objectName: "dataPoint",
-                propertyName: "fill"
+                objectName: 'dataPoint',
+                propertyName: 'fill',
             },
-            settings.dataPoint.fill
+            settings.dataPoint.fill,
         );
 
         categoryColumn.values.forEach((category, i) => {
@@ -415,7 +416,7 @@ export class DataViewConverter<T> {
             if (value != null) {
                 const color = colorHelper.getColorForMeasure(
                     categoryColumn.objects && categoryColumn.objects[i],
-                    "");
+                    '');
 
                 const tooltipItems: VisualTooltipDataItem[] = [];
 
@@ -435,7 +436,7 @@ export class DataViewConverter<T> {
                 }
 
                 data.push({
-                    category: category !== 0 && !category ? "(Blank)" : category,
+                    category: category !== 0 && !category ? '(Blank)' : category,
                     value: value,
                     shiftValue: 1,
                     colorSaturation: colorSaturation,
@@ -444,7 +445,7 @@ export class DataViewConverter<T> {
                     color: color,
                     tooltips: tooltipItems,
                     columnBy: columnBy,
-                    rowBy: rowBy
+                    rowBy: rowBy,
                 });
 
                 const highlightValue: number = columns[Field.Value].highlights ? columns[Field.Value].highlights[i] : null;
@@ -455,7 +456,7 @@ export class DataViewConverter<T> {
                     highlightTooltipItems.push(this.createTooltipData(valueMetadata, highlightValue, this.Highlighted));
 
                     data.push({
-                        category: category !== 0 && !category ? "(Blank)" : category,
+                        category: category !== 0 && !category ? '(Blank)' : category,
                         value: highlightValue,
                         shiftValue: 1,
                         selected: false,
@@ -464,7 +465,7 @@ export class DataViewConverter<T> {
                         color: color,
                         tooltips: highlightTooltipItems,
                         columnBy: columnBy,
-                        rowBy: rowBy
+                        rowBy: rowBy,
                     });
                 }
             }
@@ -592,7 +593,7 @@ export class DataViewConverter<T> {
     private static createTooltipData(metadataColumn: DataViewMetadataColumn, value: PrimitiveValue, displayName?: string): VisualTooltipDataItem {
         return {
             displayName: displayName ? displayName : metadataColumn.displayName,
-            value: this.getFormattedValue(metadataColumn, value)
+            value: this.getFormattedValue(metadataColumn, value),
         };
     }
 
