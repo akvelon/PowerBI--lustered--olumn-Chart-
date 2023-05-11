@@ -403,6 +403,17 @@ export class Visual implements IVisual {
             this.normalChartProcess(options);
         }
 
+        const clearCatcher = d3.select(this.mainHtmlElement);
+        clearCatcher
+            .on('contextmenu', (e: MouseEvent) => {
+                this.webBehaviorSelectionHandler.handleContextMenu(null, {
+                    x: e.clientX,
+                    y: e.clientY
+                });
+                e.preventDefault();
+                e.stopPropagation();
+            });
+
         if (!this.isSelectionRestored) {
             this.restoreSelection();
 
